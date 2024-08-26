@@ -1,13 +1,46 @@
 import * as fal from "@fal-ai/serverless-client";
 
-const result = await fal.subscribe("fal-ai/flux/schnell", {
-  input: {
-    prompt: "Extreme close-up of a single tiger eye, direct frontal view. Detailed iris and pupil. Sharp focus on eye texture and color. Natural lighting to capture authentic eye shine and depth. The word \"FLUX\" is painted over it in big, white brush strokes with visible texture."
-  },
-  logs: true,
-  onQueueUpdate: (update) => {
-    if (update.status === "IN_PROGRESS") {
-      update.logs.map((log) => log.message).forEach(console.log);
-    }
-  },
+// Add this line near the top of the file
+console.log("FAL_KEY:", process.env.FAL_KEY);
+
+// Configure the fal client with the API key
+fal.config({
+  credentials: process.env.FAL_KEY,
 });
+
+export async function query(data: { inputs: string }): Promise<Blob> {
+  console.log("Sending request with data:", data);
+
+  try {
+    const result = await fal.subscribe("fal-ai/flux/schnell", {
+      input: {
+        prompt: data.inputs,
+        image_size: "landscape_4_3",
+        num_inference_steps: 4,
+        num_images: 1,
+        enable_safety_checker: true,
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          update.logs.map((log) => log.message).forEach(console.log);
+        }
+      },
+    });
+
+    // Assuming the first image in the result is the one we want
+    const imageUrl = result.images[0].url;
+    
+    // Fetch the image as a Blob
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.blob();
+
+  } catch (error) {
+    console.error("Error generating image:", error);
+    throw error;
+  }
+}

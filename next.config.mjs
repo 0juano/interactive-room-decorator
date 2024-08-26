@@ -5,6 +5,12 @@ const nextConfig = {
   },
   images: {
     domains: ['fal-cdn.fal.ai'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.fal.ai',
+      },
+    ],
   },
 };
 

@@ -46,41 +46,63 @@ export default function Component() {
   const MAX_ART_PIECES = 4
 
   const handleUploadArt = useCallback(() => {
+    console.log("handleUploadArt called");
     if (artPieces.length < MAX_ART_PIECES) {
-      artFileInputRef.current?.click()
+      artFileInputRef.current?.click();
+    } else {
+      console.log("Maximum number of art pieces reached");
     }
   }, [artPieces])
 
-  const handleArtFileChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) {
+  const handleArtFileChange = useCallback((input: ChangeEvent<HTMLInputElement> | string) => {
+    console.log("handleArtFileChange called");
+
+    const processImage = (imageSource: string) => {
+      console.log("Processing image:", imageSource);
+      const img = new Image();
+      img.onload = () => {
+        console.log("Image loaded successfully");
+        const aspectRatio = img.width / img.height;
+        const newArt: ArtPiece = {
+          id: Date.now(),
+          x: 0,
+          y: 0,
+          width: 150,
+          height: 150 / aspectRatio,
+          aspectRatio,
+          isPlaced: false,
+          frameColor: 'black',
+          image: imageSource
+        };
+        setArtPieces(prev => [...prev, newArt]);
+        console.log("New art piece added:", newArt);
+      };
+      img.src = imageSource;
+    };
+
+    if (typeof input === 'string') {
+      // Handle generated image URL
+      processImage(input);
+    } else {
+      // Handle file upload
+      const files = input.target.files;
+      if (!files) return;
+
+      console.log("Files selected:", files.length);
+
       Array.from(files).forEach((file, index) => {
         if (artPieces.length + index < MAX_ART_PIECES) {
-          const reader = new FileReader()
+          const reader = new FileReader();
           reader.onload = (event) => {
-            const img = new Image()
-            img.onload = () => {
-              const aspectRatio = img.width / img.height
-              const newArt: ArtPiece = {
-                id: artPieces.length + index,
-                x: 0,
-                y: 0,
-                width: 150,
-                height: 150 / aspectRatio,
-                aspectRatio,
-                isPlaced: false,
-                frameColor: 'black',
-                image: event.target?.result as string
-              }
-              setArtPieces(prev => [...prev, newArt])
+            if (event.target?.result) {
+              processImage(event.target.result as string);
             }
-            img.src = event.target?.result as string
-          }
-          reader.readAsDataURL(file)
+          };
+          reader.readAsDataURL(file);
         }
-      })
+      });
     }
-  }, [artPieces])
+  }, [artPieces, MAX_ART_PIECES]);
 
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, artId: number) => {
     e.dataTransfer.setData('text/plain', artId.toString())
@@ -221,10 +243,21 @@ export default function Component() {
 
   const handleSaveRoomImage = async () => {
     if (innerRoomRef.current) {
+      // Wait for all images to load
+      const images = innerRoomRef.current.querySelectorAll('img');
+      await Promise.all(Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       const canvas = await html2canvas(innerRoomRef.current, {
+        useCORS: true, // Add this line
         backgroundColor: null,
-      })
-      const image = canvas.toDataURL('image/jpeg', 0.9)
+      });
+      const image = canvas.toDataURL('image/jpeg', 0.9);
       
       // Generate timestamp
       const now = new Date()
@@ -292,23 +325,12 @@ export default function Component() {
     }
   };
 
-  const handleAddGeneratedArt = () => {
+  const handleAddGeneratedArt = useCallback(() => {
     if (generatedImage && artPieces.length < MAX_ART_PIECES) {
-      const newArt: ArtPiece = {
-        id: artPieces.length,
-        x: 0,
-        y: 0,
-        width: 150,
-        height: 150,
-        aspectRatio: 1,
-        isPlaced: false,
-        frameColor: 'black',
-        image: generatedImage
-      }
-      setArtPieces(prev => [...prev, newArt])
-      setGeneratedImage(null)
+      handleArtFileChange(generatedImage);
+      setGeneratedImage(null);
     }
-  }
+  }, [generatedImage, artPieces, handleArtFileChange]);
 
   const handleSaveGeneratedImage = () => {
     if (generatedImage) {
@@ -351,7 +373,7 @@ export default function Component() {
             ref={artFileInputRef}
             onChange={handleArtFileChange}
             accept="image/*"
-            multiple // Add this attribute to allow multiple file selection
+            multiple
             className="hidden"
           />
           <Button 
@@ -473,11 +495,13 @@ export default function Component() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-2">
+              {console.log("Rendering thumbnail grid, artPieces:", artPieces)}
               {Array.from({ length: MAX_ART_PIECES }).map((_, index) => {
-                const art = artPieces[index]
+                const art = artPieces[index];
+                console.log("Rendering thumbnail:", index, art);
                 return (
                   <div 
-                    key={index}
+                    key={art ? art.id : index}
                     className={`aspect-square bg-gray-100 border border-gray-300 rounded-md flex items-center justify-center relative ${art ? 'cursor-pointer' : ''} select-none overflow-hidden`}
                     draggable={!!art}
                     onDragStart={(e) => art && handleDragStart(e, art.id)}
@@ -487,7 +511,7 @@ export default function Component() {
                       <>
                         <img 
                           src={art.image || ''} 
-                          alt={`Art ${art.id + 1}`} 
+                          alt={`Art ${art.id}`} 
                           className="w-full h-full object-cover pointer-events-none"
                         />
                         <Button
@@ -497,7 +521,7 @@ export default function Component() {
                           onClick={(e) => handleDeleteArt(e, art.id)}
                         >
                           <XIcon className="h-3 w-3" />
-                          <span className="sr-only">Delete Art {art.id + 1}</span>
+                          <span className="sr-only">Delete Art {art.id}</span>
                         </Button>
                       </>
                     ) : (
