@@ -1,8 +1,17 @@
 [x] add basic 'FLUX.1 [schnell]' functionality to the 'Generate Image' button
-    [ ] option to generate multiple images
-[ ] to be able to extract color palettes from the room image
-    [ ] option to include this in the prompt for image generation
-[ ] 5 pre generated prompts of different art styles
-[ ] link with firebase for storage, auth, and db
-[ ] improve design overall
-[ ] a tinder like swiping interface to discover what type of art style the user likes
+    [ ] should i change to Replicate?
+    [ ] option to generate multiple images 
+[ ] to be able to extract color palettes from the room image 
+    [ ] option to include this in the prompt for image generation 
+[ ] zoom in and out of the room image in order to prevent cropping of the image 
+[ ] 5 pre generated prompts of different art styles 
+[ ] link with firebase for storage, auth, and db 
+[ ] improve design overall 
+[ ] a tinder like swiping interface to discover what type of art style the user likes 
+[ ] save a generated image that was sent to thumbnail grid 
+[ ] future stuff 
+    [ ] change the light position in the room image 
+    [ ] zoom in and out of the room image 
+    [ ] rotate the art Image 
+    [ ] I want the art generator to be super fast 
+    [ ] option to remove something from the room
