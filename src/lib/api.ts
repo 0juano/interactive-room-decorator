@@ -9,7 +9,8 @@ fal.config({
 });
 
 export async function query(data: { inputs: string }): Promise<Blob> {
-  console.log("Sending request with data:", data);
+  // Remove or comment out this line
+  // console.log("Sending request with data:", data);
 
   try {
     const result = await fal.subscribe("fal-ai/flux/schnell", {
@@ -20,11 +21,14 @@ export async function query(data: { inputs: string }): Promise<Blob> {
         num_images: 1,
         enable_safety_checker: true,
       },
-      logs: true,
+      logs: false, // Change this to false to disable logging
       onQueueUpdate: (update) => {
+        // Remove or comment out this block
+        /*
         if (update.status === "IN_PROGRESS") {
           update.logs.map((log) => log.message).forEach(console.log);
         }
+        */
       },
     });
 
@@ -40,7 +44,8 @@ export async function query(data: { inputs: string }): Promise<Blob> {
     return await response.blob();
 
   } catch (error) {
-    console.error("Error generating image:", error);
+    // Change this to a more generic error message
+    console.error("Error in image generation");
     throw error;
   }
 }

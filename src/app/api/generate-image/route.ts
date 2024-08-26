@@ -8,14 +8,16 @@ fal.config({
 export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
-    console.log("Received prompt:", prompt); // Log the received prompt
+    // Remove or comment out this line
+    // console.log("Received prompt:", prompt);
 
     if (!process.env.FAL_KEY) {
       console.error("FAL_KEY is not set");
       return NextResponse.json({ error: 'FAL_KEY is not set' }, { status: 500 });
     }
 
-    console.log("Calling fal.subscribe"); // Log before calling fal.subscribe
+    // Remove or comment out this line
+    // console.log("Calling fal.subscribe");
     const result = await fal.subscribe("fal-ai/flux/schnell", {
       input: {
         prompt: prompt,
@@ -25,11 +27,12 @@ export async function POST(req: Request) {
         enable_safety_checker: true,
       },
     });
-    console.log("fal.subscribe result:", result); // Log the result
+    // Remove or comment out this line
+    // console.log("fal.subscribe result:", result);
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error generating image:", error);
+    console.error("Error in image generation");
     return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });
   }
 }

@@ -46,22 +46,15 @@ export default function Component() {
   const MAX_ART_PIECES = 4
 
   const handleUploadArt = useCallback(() => {
-    console.log("handleUploadArt called");
     if (artPieces.length < MAX_ART_PIECES) {
       artFileInputRef.current?.click();
-    } else {
-      console.log("Maximum number of art pieces reached");
     }
   }, [artPieces])
 
   const handleArtFileChange = useCallback((input: ChangeEvent<HTMLInputElement> | string) => {
-    console.log("handleArtFileChange called");
-
     const processImage = (imageSource: string) => {
-      console.log("Processing image:", imageSource);
       const img = new Image();
       img.onload = () => {
-        console.log("Image loaded successfully");
         const aspectRatio = img.width / img.height;
         const newArt: ArtPiece = {
           id: Date.now(),
@@ -75,7 +68,6 @@ export default function Component() {
           image: imageSource
         };
         setArtPieces(prev => [...prev, newArt]);
-        console.log("New art piece added:", newArt);
       };
       img.src = imageSource;
     };
@@ -87,8 +79,6 @@ export default function Component() {
       // Handle file upload
       const files = input.target.files;
       if (!files) return;
-
-      console.log("Files selected:", files.length);
 
       Array.from(files).forEach((file, index) => {
         if (artPieces.length + index < MAX_ART_PIECES) {
@@ -496,10 +486,8 @@ export default function Component() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {console.log("Rendering thumbnail grid, artPieces:", artPieces)}
               {Array.from({ length: MAX_ART_PIECES }).map((_, index) => {
                 const art = artPieces[index];
-                console.log("Rendering thumbnail:", index, art);
                 return (
                   <div 
                     key={art ? art.id : index}
