@@ -334,6 +334,13 @@ export default function Component() {
     }
   };
 
+  const handlePromptKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleGenerateImage();
+    }
+  };
+
   return (
     <div className="container mx-auto p-2 space-y-4 pt-4"> {/* Added pt-4 for top padding */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
@@ -530,6 +537,7 @@ export default function Component() {
                 placeholder="Enter prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handlePromptKeyDown}
                 className="w-full"
               />
               <Button 
