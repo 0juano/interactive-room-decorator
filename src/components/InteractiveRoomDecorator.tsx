@@ -1,7 +1,8 @@
 'use client'
 
+import React, { useState, useRef, useCallback, ChangeEvent } from 'react'
 import { Button } from "@/components/ui/button"
-import { UploadIcon, XIcon, PlusIcon } from "lucide-react"
+import { UploadIcon, XIcon, PlusIcon, X } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -10,7 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { useState, useRef, useCallback, ChangeEvent, MouseEvent } from 'react'
 import html2canvas from 'html2canvas'
 import { saveAs } from 'file-saver';
 
@@ -26,6 +26,42 @@ type ArtPiece = {
   frameColor: string,
   image: string | null
 }
+
+const ArtThumbnail = React.memo(({ art, onDelete, onDoubleClick }: { art: ArtPiece; onDelete: () => void; onDoubleClick: () => void }) => {
+  const [isHovering, setIsHovering] = useState(false);
+
+  return (
+    <div 
+      className="relative aspect-square bg-gray-100 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer select-none overflow-hidden group"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onDoubleClick={onDoubleClick}
+    >
+      {art.image && (
+        <img 
+          src={art.image} 
+          alt={`Art ${art.id}`} 
+          className="w-full h-full object-cover pointer-events-none"
+        />
+      )}
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-300" />
+      {isHovering && (
+        <button
+          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white bg-opacity-50 rounded-full opacity-100 transition-all duration-300 hover:bg-opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <X className="h-4 w-4 text-gray-700" />
+          <span className="sr-only">Delete Art {art.id}</span>
+        </button>
+      )}
+    </div>
+  );
+});
+
+ArtThumbnail.displayName = 'ArtThumbnail';
 
 export default function Component() {
   const [artPieces, setArtPieces] = useState<ArtPiece[]>([])
@@ -188,8 +224,7 @@ export default function Component() {
     setIsResizing({ direction, artId })
   }, [])
 
-  const handleDeleteArt = useCallback((e: React.MouseEvent<HTMLButtonElement>, artId: number) => {
-    e.stopPropagation()
+  const handleDeleteArt = useCallback((artId: number) => {
     setArtPieces(prev => prev.filter(art => art.id !== artId))
   }, [])
 
@@ -267,8 +302,7 @@ export default function Component() {
     }
   }
 
-  const handleDoubleClick = useCallback((e: MouseEvent<HTMLDivElement>, artId: number) => {
-    e.preventDefault()
+  const handleDoubleClick = useCallback((artId: number) => {
     if (roomRef.current) {
       const roomRect = roomRef.current.getBoundingClientRect()
       const centerX = (roomRect.width - FRAME_WIDTH * 2) / 2
@@ -408,7 +442,7 @@ export default function Component() {
             {artPieces.filter(art => art.isPlaced).map(art => (
               <div 
                 key={art.id}
-                className="absolute cursor-move select-none"
+                className="absolute cursor-move select-none group"
                 style={{ 
                   left: `${art.x}px`, 
                   top: `${art.y}px`, 
@@ -423,7 +457,7 @@ export default function Component() {
                 onMouseDown={(e) => handleMouseDown(e, art.id)}
                 onMouseEnter={() => setIsHovering(art.id)}
                 onMouseLeave={() => setIsHovering(null)}
-                onDoubleClick={(e) => handleDoubleClick(e, art.id)}
+                onDoubleClick={() => handleDoubleClick(art.id)}
               >
                 <div 
                   className="absolute inset-0 flex items-center justify-center overflow-hidden"
@@ -444,26 +478,23 @@ export default function Component() {
                     <span className="pointer-events-none text-gray-500">Art {art.id + 1}</span>
                   )}
                 </div>
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-300" />
                 {isHovering === art.id && (
-                  <>
-                    {resizeHandles.map(({ direction, className }) => (
-                      <div
-                        key={direction}
-                        className={`absolute bg-yellow-400 ${className}`}
-                        onMouseDown={(e) => handleResizeStart(e, direction, art.id)}
-                      />
-                    ))}
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-1 -right-1 rounded-full h-5 w-5 p-0"
-                      onClick={() => handleRemovePlacedArt(art.id)}
-                    >
-                      <XIcon className="h-2.5 w-2.5" />
-                      <span className="sr-only">Remove Art {art.id + 1}</span>
-                    </Button>
-                  </>
+                  <button
+                    className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white bg-opacity-50 rounded-full opacity-100 transition-all duration-300 hover:bg-opacity-100"
+                    onClick={() => handleRemovePlacedArt(art.id)}
+                  >
+                    <X className="h-4 w-4 text-gray-700" />
+                    <span className="sr-only">Remove Art {art.id + 1}</span>
+                  </button>
                 )}
+                {resizeHandles.map(({ direction, className }) => (
+                  <div
+                    key={direction}
+                    className={`absolute ${className} bg-yellow-400 opacity-0 group-hover:opacity-100`}
+                    onMouseDown={(e) => handleResizeStart(e, direction, art.id)}
+                  />
+                ))}
               </div>
             ))}
           </div>
@@ -495,36 +526,21 @@ export default function Component() {
             <div className="grid grid-cols-2 gap-2">
               {Array.from({ length: MAX_ART_PIECES }).map((_, index) => {
                 const art = artPieces[index];
-                return (
+                return art ? (
+                  <ArtThumbnail
+                    key={art.id}
+                    art={art}
+                    onDelete={() => handleDeleteArt(art.id)}
+                    onDoubleClick={() => handleDoubleClick(art.id)}
+                  />
+                ) : (
                   <div 
-                    key={art ? art.id : index}
-                    className={`aspect-square bg-gray-100 border border-gray-300 rounded-md flex items-center justify-center relative ${art ? 'cursor-pointer' : ''} select-none overflow-hidden`}
-                    draggable={!!art}
-                    onDragStart={(e) => art && handleDragStart(e, art.id)}
-                    onDoubleClick={(e) => art && handleDoubleClick(e, art.id)}
+                    key={index}
+                    className="aspect-square bg-gray-100 border border-gray-300 rounded-md flex items-center justify-center"
                   >
-                    {art ? (
-                      <>
-                        <img 
-                          src={art.image || ''} 
-                          alt={`Art ${art.id}`} 
-                          className="w-full h-full object-cover pointer-events-none"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 rounded-full h-6 w-6 p-0"
-                          onClick={(e) => handleDeleteArt(e, art.id)}
-                        >
-                          <XIcon className="h-3 w-3" />
-                          <span className="sr-only">Delete Art {art.id}</span>
-                        </Button>
-                      </>
-                    ) : (
-                      <PlusIcon className="h-6 w-6 text-gray-400" />
-                    )}
+                    <PlusIcon className="h-6 w-6 text-gray-400" />
                   </div>
-                )
+                );
               })}
             </div>
           </div>

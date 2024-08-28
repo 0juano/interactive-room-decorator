@@ -1,6 +1,7 @@
 [x] add basic 'FLUX.1 [schnell]' functionality to the 'Generate Image' button
-    [ ] should i change to Replicate?
-    [ ] option to generate multiple images 
+    [x] should i change to Replicate? - YES
+    [x] option to generate multiple images 
+    [x] prompt once you hit enter in the dialog box
 [ ] to be able to extract color palettes from the room image 
     [ ] option to include this in the prompt for image generation 
 [ ] zoom in and out of the room image in order to prevent cropping of the image 
