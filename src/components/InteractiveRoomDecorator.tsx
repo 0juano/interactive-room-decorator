@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback, ChangeEvent } from 'react'
+import React, { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { UploadIcon, XIcon, PlusIcon, X } from "lucide-react"
 import {
@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import html2canvas from 'html2canvas'
 import { saveAs } from 'file-saver';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 type ArtPiece = { 
@@ -80,6 +81,10 @@ export default function Component() {
 
   const FRAME_WIDTH = 10 // Reduced from 20 to 10 pixels
   const MAX_ART_PIECES = 4
+
+  useEffect(() => {
+    console.log("roomImage state changed:", roomImage ? "Image set" : "No image")
+  }, [roomImage])
 
   const handleUploadArt = useCallback(() => {
     if (artPieces.length < MAX_ART_PIECES) {
@@ -260,7 +265,9 @@ export default function Component() {
     if (file) {
       const reader = new FileReader()
       reader.onload = (event) => {
-        setRoomImage(event.target?.result as string)
+        const result = event.target?.result as string
+        console.log("Room image loaded:", result.slice(0, 50) + "...")
+        setRoomImage(result)
       }
       reader.readAsDataURL(file)
     }
@@ -376,7 +383,7 @@ export default function Component() {
   };
 
   return (
-    <div className="container mx-auto p-2 space-y-4 pt-4"> {/* Added pt-4 for top padding */}
+    <div className="container mx-auto p-2 space-y-4 pt-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
         <h1 className="text-xl font-bold">Interactive Room Decorator</h1>
         <div className="flex flex-wrap gap-2">
@@ -429,75 +436,79 @@ export default function Component() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          <div
-            ref={innerRoomRef}
-            className="absolute inset-0"
-            style={{
-              backgroundImage: roomImage ? `url(${roomImage})` : 'none',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            {!roomImage && <p className="text-gray-500 pointer-events-none">Uploaded Room Picture</p>}
-            {artPieces.filter(art => art.isPlaced).map(art => (
+          {roomImage ? (
+            <img 
+              src={roomImage} 
+              alt="Room" 
+              className="w-full h-full object-cover"
+              onLoad={() => console.log("Room image loaded successfully in UI")}
+              onError={(e) => console.error("Error loading room image in UI:", e)}
+              style={{border: '2px solid red'}} // Add this line for debugging
+            />
+          ) : (
+            <p className="text-gray-500 pointer-events-none">No Room Image Uploaded</p>
+          )}
+          <p className="absolute top-0 left-0 bg-white text-black p-1 z-10">
+            Room Image: {roomImage ? 'Set' : 'Not Set'}
+          </p>
+          {artPieces.filter(art => art.isPlaced).map(art => (
+            <div 
+              key={art.id}
+              className="absolute cursor-move select-none group"
+              style={{ 
+                left: `${art.x}px`, 
+                top: `${art.y}px`, 
+                width: `${art.width + (art.frameColor !== 'transparent' ? FRAME_WIDTH * 2 : 0)}px`, 
+                height: `${art.height + (art.frameColor !== 'transparent' ? FRAME_WIDTH * 2 : 0)}px`,
+                boxShadow: art.frameColor !== 'transparent' 
+                  ? `0 2px 4px rgba(0,0,0,0.1), 0 0 0 ${FRAME_WIDTH}px ${art.frameColor}, 0 0 0 ${FRAME_WIDTH + 1}px #000`
+                  : 'none',
+                transition: 'box-shadow 0.3s ease-in-out',
+                backgroundColor: art.frameColor !== 'transparent' ? 'white' : 'transparent',
+              }}
+              onMouseDown={(e) => handleMouseDown(e, art.id)}
+              onMouseEnter={() => setIsHovering(art.id)}
+              onMouseLeave={() => setIsHovering(null)}
+              onDoubleClick={() => handleDoubleClick(art.id)}
+            >
               <div 
-                key={art.id}
-                className="absolute cursor-move select-none group"
-                style={{ 
-                  left: `${art.x}px`, 
-                  top: `${art.y}px`, 
-                  width: `${art.width + (art.frameColor !== 'transparent' ? FRAME_WIDTH * 2 : 0)}px`, 
-                  height: `${art.height + (art.frameColor !== 'transparent' ? FRAME_WIDTH * 2 : 0)}px`,
-                  boxShadow: art.frameColor !== 'transparent' 
-                    ? `0 2px 4px rgba(0,0,0,0.1), 0 0 0 ${FRAME_WIDTH}px ${art.frameColor}, 0 0 0 ${FRAME_WIDTH + 1}px #000`
-                    : 'none',
-                  transition: 'box-shadow 0.3s ease-in-out',
-                  backgroundColor: art.frameColor !== 'transparent' ? 'white' : 'transparent',
+                className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                style={{
+                  left: art.frameColor !== 'transparent' ? `${FRAME_WIDTH}px` : '0',
+                  top: art.frameColor !== 'transparent' ? `${FRAME_WIDTH}px` : '0',
+                  width: art.frameColor !== 'transparent' ? `${art.width}px` : '100%',
+                  height: art.frameColor !== 'transparent' ? `${art.height}px` : '100%',
                 }}
-                onMouseDown={(e) => handleMouseDown(e, art.id)}
-                onMouseEnter={() => setIsHovering(art.id)}
-                onMouseLeave={() => setIsHovering(null)}
-                onDoubleClick={() => handleDoubleClick(art.id)}
               >
-                <div 
-                  className="absolute inset-0 flex items-center justify-center overflow-hidden"
-                  style={{
-                    left: art.frameColor !== 'transparent' ? `${FRAME_WIDTH}px` : '0',
-                    top: art.frameColor !== 'transparent' ? `${FRAME_WIDTH}px` : '0',
-                    width: art.frameColor !== 'transparent' ? `${art.width}px` : '100%',
-                    height: art.frameColor !== 'transparent' ? `${art.height}px` : '100%',
-                  }}
-                >
-                  {art.image ? (
-                    <img 
-                      src={art.image} 
-                      alt={`Art ${art.id + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="pointer-events-none text-gray-500">Art {art.id + 1}</span>
-                  )}
-                </div>
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-300" />
-                {isHovering === art.id && (
-                  <button
-                    className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white bg-opacity-50 rounded-full opacity-100 transition-all duration-300 hover:bg-opacity-100"
-                    onClick={() => handleRemovePlacedArt(art.id)}
-                  >
-                    <X className="h-4 w-4 text-gray-700" />
-                    <span className="sr-only">Remove Art {art.id + 1}</span>
-                  </button>
-                )}
-                {resizeHandles.map(({ direction, className }) => (
-                  <div
-                    key={direction}
-                    className={`absolute ${className} bg-yellow-400 opacity-0 group-hover:opacity-100`}
-                    onMouseDown={(e) => handleResizeStart(e, direction, art.id)}
+                {art.image ? (
+                  <img 
+                    src={art.image} 
+                    alt={`Art ${art.id + 1}`} 
+                    className="w-full h-full object-cover"
                   />
-                ))}
+                ) : (
+                  <span className="pointer-events-none text-gray-500">Art {art.id + 1}</span>
+                )}
               </div>
-            ))}
-          </div>
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-300" />
+              {isHovering === art.id && (
+                <button
+                  className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white bg-opacity-50 rounded-full opacity-100 transition-all duration-300 hover:bg-opacity-100"
+                  onClick={() => handleRemovePlacedArt(art.id)}
+                >
+                  <X className="h-4 w-4 text-gray-700" />
+                  <span className="sr-only">Remove Art {art.id + 1}</span>
+                </button>
+              )}
+              {resizeHandles.map(({ direction, className }) => (
+                <div
+                  key={direction}
+                  className={`absolute ${className} bg-yellow-400 opacity-0 group-hover:opacity-100`}
+                  onMouseDown={(e) => handleResizeStart(e, direction, art.id)}
+                />
+              ))}
+            </div>
+          ))}
         </div>
         
         <div className="w-full lg:w-1/3 space-y-4">
